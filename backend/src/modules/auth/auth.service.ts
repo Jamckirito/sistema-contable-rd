@@ -19,7 +19,7 @@ export interface RegisterData {
 }
 
 export class AuthService {
-  private readonly JWT_SECRET = process.env.JWT_SECRET!;
+  private readonly JWT_SECRET = process.env.JWT_SECRET || 'local-dev-secret';
   private readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
   private readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 

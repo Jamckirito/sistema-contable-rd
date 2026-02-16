@@ -359,54 +359,54 @@ async function main() {
       {
         tipoComprobante: 'B01',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(100000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 100000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       },
       {
         tipoComprobante: 'B02',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(100000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 100000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       },
       {
         tipoComprobante: 'B03',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(50000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 50000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       },
       {
         tipoComprobante: 'B04',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(50000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 50000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       },
       {
         tipoComprobante: 'B14',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(10000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 10000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       },
       {
         tipoComprobante: 'B15',
         serie: '001',
-        secuenciaInicio: BigInt(1),
-        secuenciaFin: BigInt(10000),
-        secuenciaActual: BigInt(0),
+        secuenciaInicio: 1,
+        secuenciaFin: 10000,
+        secuenciaActual: 0,
         fechaVencimiento,
         activo: true
       }

@@ -29,7 +29,8 @@ export const authenticate = async (
     const token = authHeader.substring(7);
 
     // Verificar token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const secret = process.env.JWT_SECRET || 'local-dev-secret';
+    const decoded = jwt.verify(token, secret) as any;
 
     // Buscar usuario y verificar que existe y está activo
     const usuario = await prisma.usuario.findUnique({

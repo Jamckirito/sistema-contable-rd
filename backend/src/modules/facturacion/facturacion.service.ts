@@ -67,7 +67,7 @@ export class FacturacionService {
     const ncf = this.generarNCF(
       secuenciaNcf.tipoComprobante,
       secuenciaNcf.serie,
-      secuenciaNcf.secuenciaActual + BigInt(1)
+      secuenciaNcf.secuenciaActual + 1
     );
 
     // Calcular montos
@@ -143,7 +143,7 @@ export class FacturacionService {
       await tx.secuenciaNcf.update({
         where: { id: secuenciaNcf.id },
         data: {
-          secuenciaActual: secuenciaNcf.secuenciaActual + BigInt(1)
+          secuenciaActual: secuenciaNcf.secuenciaActual + 1
         }
       });
 
@@ -291,7 +291,7 @@ export class FacturacionService {
     });
   }
 
-  private generarNCF(tipo: string, serie: string, secuencia: bigint): string {
+  private generarNCF(tipo: string, serie: string, secuencia: number): string {
     // Formato: B01 + serie (3 dígitos) + secuencia (8 dígitos)
     // Ejemplo: B010011234567890
     const secuenciaStr = secuencia.toString().padStart(8, '0');

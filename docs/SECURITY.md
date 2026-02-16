@@ -251,7 +251,7 @@ JWT_SECRET=tu-secreto-super-seguro-cambiar-en-produccion
 DATABASE_URL=postgresql://...
 
 # DGII - credenciales protegidas
-DGII_API_KEY=tu-api-key
+# (APIs externas removidas - solo ejecución local)
 ```
 
 #### ✅ .gitignore Configurado

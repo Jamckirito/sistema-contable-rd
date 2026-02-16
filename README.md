@@ -201,12 +201,10 @@ npm run test:e2e
 
 ## 🚀 Despliegue en Producción
 
-### Variables de Entorno Necesarias
+### Variables de Entorno (local)
 ```env
-NODE_ENV=production
-DATABASE_URL=postgresql://user:password@host:5432/dbname
-JWT_SECRET=tu-secreto-super-seguro
-DGII_API_KEY=tu-key-dgii
+NODE_ENV=development
+DATABASE_URL=file:./dev.db
 ```
 
 ### Build
