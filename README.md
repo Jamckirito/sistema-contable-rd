@@ -1,4 +1,4 @@
-# Sistema Contable RD - Sistema de Contabilidad Completo para República Dominicana
+## Sistema Contable RD - Sistema de Contabilidad Completo para República Dominicana
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
