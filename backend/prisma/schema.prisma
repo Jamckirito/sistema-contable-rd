@@ -1,0 +1,755 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// MÓDULO: USUARIOS Y SEGURIDAD
+// ============================================================================
+
+model Usuario {
+  id            String   @id @default(uuid())
+  nombreUsuario String   @unique
+  email         String   @unique
+  password      String
+  nombreCompleto String
+  activo        Boolean  @default(true)
+  rolId         String
+  rol           Rol      @relation(fields: [rolId], references: [id])
+  sucursalId    String?
+  sucursal      Sucursal? @relation(fields: [sucursalId], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relaciones
+  auditorias    Auditoria[]
+  sesiones      Sesion[]
+  
+  @@map("usuarios")
+}
+
+model Rol {
+  id          String   @id @default(uuid())
+  nombre      String   @unique
+  descripcion String?
+  permisos    Json     // Array de permisos
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  usuarios    Usuario[]
+  
+  @@map("roles")
+}
+
+model Sesion {
+  id           String   @id @default(uuid())
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
+  token        String   @unique
+  refreshToken String?
+  ipAddress    String?
+  userAgent    String?
+  expiraEn     DateTime
+  activa       Boolean  @default(true)
+  
+  createdAt    DateTime @default(now())
+  
+  @@map("sesiones")
+}
+
+model Auditoria {
+  id          String   @id @default(uuid())
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+  accion      String   // CREATE, UPDATE, DELETE, READ
+  modulo      String   // Nombre del módulo
+  tabla       String   // Tabla afectada
+  registroId  String?  // ID del registro afectado
+  datosAntes  Json?    // Estado anterior
+  datosDespues Json?   // Estado nuevo
+  ipAddress   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("auditorias")
+  @@index([usuarioId, createdAt])
+  @@index([modulo, tabla])
+}
+
+// ============================================================================
+// MÓDULO: EMPRESA Y CONFIGURACIÓN
+// ============================================================================
+
+model Empresa {
+  id                String   @id @default(uuid())
+  rnc               String   @unique
+  razonSocial       String
+  nombreComercial   String
+  telefono          String?
+  email             String?
+  direccion         String?
+  ciudad            String?
+  provincia         String?
+  pais              String   @default("República Dominicana")
+  sitioWeb          String?
+  logo              String?
+  
+  // Configuración fiscal
+  contribuyenteITBIS Boolean @default(true)
+  regimenEspecial    Boolean @default(false)
+  tipoContribuyente  String  // PERSONA_FISICA, PERSONA_JURIDICA
+  
+  // Configuración contable
+  planContableId     String?
+  monedaBase         String  @default("DOP")
+  separadorMiles     String  @default(",")
+  separadorDecimal   String  @default(".")
+  
+  activo            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  sucursales        Sucursal[]
+  configuraciones   Configuracion[]
+  
+  @@map("empresas")
+}
+
+model Sucursal {
+  id            String   @id @default(uuid())
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id])
+  codigo        String
+  nombre        String
+  direccion     String?
+  telefono      String?
+  esPrincipal   Boolean  @default(false)
+  activo        Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  usuarios      Usuario[]
+  facturas      Factura[]
+  
+  @@unique([empresaId, codigo])
+  @@map("sucursales")
+}
+
+model Configuracion {
+  id         String   @id @default(uuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id])
+  clave      String   // Clave de configuración
+  valor      Json     // Valor de la configuración
+  modulo     String   // Módulo al que pertenece
+  descripcion String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([empresaId, modulo, clave])
+  @@map("configuraciones")
+}
+
+// ============================================================================
+// MÓDULO: CONTABILIDAD GENERAL
+// ============================================================================
+
+model PlanCuentas {
+  id          String   @id @default(uuid())
+  codigo      String   @unique
+  nombre      String
+  nivel       Int      // 1, 2, 3, 4, 5, 6
+  tipoCuenta  String   // ACTIVO, PASIVO, PATRIMONIO, INGRESO, GASTO
+  naturaleza  String   // DEUDORA, ACREEDORA
+  cuentaPadreId String?
+  cuentaPadre PlanCuentas? @relation("SubCuentas", fields: [cuentaPadreId], references: [id])
+  subCuentas  PlanCuentas[] @relation("SubCuentas")
+  
+  aceptaMovimiento Boolean @default(true)
+  requiereCentroCosto Boolean @default(false)
+  requiereTercero    Boolean @default(false)
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  detallesAsientos DetalleAsiento[]
+  
+  @@map("plan_cuentas")
+  @@index([codigo])
+  @@index([tipoCuenta])
+}
+
+model AsientoContable {
+  id              String   @id @default(uuid())
+  numero          String   @unique
+  fecha           DateTime
+  tipo            String   // APERTURA, DIARIO, AJUSTE, CIERRE
+  concepto        String
+  periodoId       String
+  periodo         Periodo  @relation(fields: [periodoId], references: [id])
+  
+  documentoReferencia String?
+  moduloOrigen    String?  // FACTURACION, NOMINA, INVENTARIO, etc.
+  
+  debitos         Decimal  @db.Decimal(18, 2)
+  creditos        Decimal  @db.Decimal(18, 2)
+  
+  esCuadrado      Boolean  @default(false)
+  cerrado         Boolean  @default(false)
+  fechaCierre     DateTime?
+  
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  detalles        DetalleAsiento[]
+  
+  @@map("asientos_contables")
+  @@index([fecha])
+  @@index([periodoId])
+}
+
+model DetalleAsiento {
+  id            String   @id @default(uuid())
+  asientoId     String
+  asiento       AsientoContable @relation(fields: [asientoId], references: [id], onDelete: Cascade)
+  
+  cuentaId      String
+  cuenta        PlanCuentas @relation(fields: [cuentaId], references: [id])
+  
+  centroCostoId String?
+  centroCosto   CentroCosto? @relation(fields: [centroCostoId], references: [id])
+  
+  terceroId     String?
+  
+  descripcion   String
+  debito        Decimal  @db.Decimal(18, 2) @default(0)
+  credito       Decimal  @db.Decimal(18, 2) @default(0)
+  
+  createdAt     DateTime @default(now())
+  
+  @@map("detalles_asiento")
+  @@index([cuentaId])
+}
+
+model CentroCosto {
+  id          String   @id @default(uuid())
+  codigo      String   @unique
+  nombre      String
+  descripcion String?
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  detallesAsientos DetalleAsiento[]
+  
+  @@map("centros_costo")
+}
+
+model Periodo {
+  id          String   @id @default(uuid())
+  año         Int
+  mes         Int?     // NULL = anual
+  fechaInicio DateTime
+  fechaFin    DateTime
+  descripcion String
+  cerrado     Boolean  @default(false)
+  fechaCierre DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  asientos    AsientoContable[]
+  
+  @@unique([año, mes])
+  @@map("periodos")
+}
+
+// ============================================================================
+// MÓDULO: FACTURACIÓN Y NCF
+// ============================================================================
+
+model Cliente {
+  id                String   @id @default(uuid())
+  tipoIdentificacion String  // RNC, CEDULA, PASAPORTE
+  identificacion    String
+  razonSocial       String?  // Para empresas
+  nombre            String?  // Para personas
+  apellido          String?
+  nombreComercial   String?
+  
+  email             String?
+  telefono          String?
+  celular           String?
+  direccion         String?
+  ciudad            String?
+  provincia         String?
+  pais              String   @default("República Dominicana")
+  
+  tipoCliente       String   // FINAL, CREDITO_FISCAL, GUBERNAMENTAL, ESPECIAL
+  limiteCredito     Decimal? @db.Decimal(18, 2)
+  plazoCredito      Int?     // Días
+  
+  activo            Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  facturas          Factura[]
+  cuentasPorCobrar  CuentaPorCobrar[]
+  
+  @@unique([tipoIdentificacion, identificacion])
+  @@map("clientes")
+  @@index([identificacion])
+}
+
+model SecuenciaNcf {
+  id          String   @id @default(uuid())
+  tipoComprobante String // B01, B02, B03, B04, B14, B15
+  serie       String
+  secuenciaInicio BigInt
+  secuenciaFin    BigInt
+  secuenciaActual BigInt
+  fechaVencimiento DateTime
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  facturas    Factura[]
+  
+  @@map("secuencias_ncf")
+  @@index([tipoComprobante, activo])
+}
+
+model Factura {
+  id              String   @id @default(uuid())
+  numero          String   @unique
+  ncf             String?  @unique
+  tipoComprobante String   // B01, B02, B03, B04, etc.
+  secuenciaNcfId  String?
+  secuenciaNcf    SecuenciaNcf? @relation(fields: [secuenciaNcfId], references: [id])
+  
+  fecha           DateTime @default(now())
+  fechaVencimiento DateTime?
+  
+  clienteId       String
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  
+  sucursalId      String
+  sucursal        Sucursal @relation(fields: [sucursalId], references: [id])
+  
+  // Montos
+  subtotal        Decimal  @db.Decimal(18, 2)
+  descuento       Decimal  @db.Decimal(18, 2) @default(0)
+  itbis           Decimal  @db.Decimal(18, 2) @default(0)
+  total           Decimal  @db.Decimal(18, 2)
+  
+  // Estados
+  estado          String   // BORRADOR, EMITIDA, ANULADA, PAGADA
+  formaPago       String   // EFECTIVO, TARJETA, TRANSFERENCIA, CREDITO, CHEQUE
+  
+  notas           String?
+  anulada         Boolean  @default(false)
+  motivoAnulacion String?
+  
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  detalles        DetalleFactura[]
+  pagos           PagoFactura[]
+  cuentaPorCobrar CuentaPorCobrar?
+  
+  @@map("facturas")
+  @@index([fecha])
+  @@index([clienteId])
+  @@index([ncf])
+}
+
+model DetalleFactura {
+  id          String   @id @default(uuid())
+  facturaId   String
+  factura     Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  
+  productoId  String?
+  producto    Producto? @relation(fields: [productoId], references: [id])
+  
+  descripcion String
+  cantidad    Decimal  @db.Decimal(18, 4)
+  precioUnitario Decimal @db.Decimal(18, 2)
+  descuento   Decimal  @db.Decimal(18, 2) @default(0)
+  itbis       Decimal  @db.Decimal(18, 2) @default(0)
+  total       Decimal  @db.Decimal(18, 2)
+  
+  gravadoITBIS Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("detalles_factura")
+}
+
+// ============================================================================
+// MÓDULO: INVENTARIO
+// ============================================================================
+
+model Producto {
+  id              String   @id @default(uuid())
+  codigo          String   @unique
+  nombre          String
+  descripcion     String?
+  categoriaId     String?
+  categoria       CategoriaProducto? @relation(fields: [categoriaId], references: [id])
+  
+  tipoProducto    String   // BIEN, SERVICIO
+  unidadMedida    String   // UND, KG, LT, M, etc.
+  
+  // Inventario
+  controlaInventario Boolean @default(true)
+  stockMinimo     Decimal? @db.Decimal(18, 4)
+  stockMaximo     Decimal? @db.Decimal(18, 4)
+  
+  // Precios
+  costoPromedio   Decimal  @db.Decimal(18, 2) @default(0)
+  precioVenta     Decimal  @db.Decimal(18, 2)
+  
+  // Fiscal
+  gravadoITBIS    Boolean  @default(true)
+  porcentajeITBIS Decimal  @db.Decimal(5, 2) @default(18)
+  
+  activo          Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  detallesFactura DetalleFactura[]
+  movimientosInventario MovimientoInventario[]
+  
+  @@map("productos")
+  @@index([codigo])
+  @@index([nombre])
+}
+
+model CategoriaProducto {
+  id          String   @id @default(uuid())
+  codigo      String   @unique
+  nombre      String
+  descripcion String?
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  productos   Producto[]
+  
+  @@map("categorias_producto")
+}
+
+model MovimientoInventario {
+  id              String   @id @default(uuid())
+  productoId      String
+  producto        Producto @relation(fields: [productoId], references: [id])
+  
+  tipo            String   // ENTRADA, SALIDA, AJUSTE
+  tipoDocumento   String   // COMPRA, VENTA, TRANSFERENCIA, AJUSTE
+  numeroDocumento String?
+  
+  fecha           DateTime @default(now())
+  cantidad        Decimal  @db.Decimal(18, 4)
+  costoUnitario   Decimal  @db.Decimal(18, 2)
+  costoTotal      Decimal  @db.Decimal(18, 2)
+  
+  stockAnterior   Decimal  @db.Decimal(18, 4)
+  stockNuevo      Decimal  @db.Decimal(18, 4)
+  
+  observaciones   String?
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("movimientos_inventario")
+  @@index([productoId, fecha])
+}
+
+// ============================================================================
+// MÓDULO: CUENTAS POR COBRAR
+// ============================================================================
+
+model CuentaPorCobrar {
+  id              String   @id @default(uuid())
+  facturaId       String   @unique
+  factura         Factura  @relation(fields: [facturaId], references: [id])
+  
+  clienteId       String
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  
+  montoTotal      Decimal  @db.Decimal(18, 2)
+  montoPagado     Decimal  @db.Decimal(18, 2) @default(0)
+  saldoPendiente  Decimal  @db.Decimal(18, 2)
+  
+  fechaEmision    DateTime
+  fechaVencimiento DateTime
+  
+  estado          String   // PENDIENTE, PAGADA_PARCIAL, PAGADA, VENCIDA
+  diasVencidos    Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("cuentas_por_cobrar")
+  @@index([clienteId, estado])
+  @@index([fechaVencimiento])
+}
+
+model PagoFactura {
+  id              String   @id @default(uuid())
+  facturaId       String
+  factura         Factura  @relation(fields: [facturaId], references: [id])
+  
+  fecha           DateTime @default(now())
+  monto           Decimal  @db.Decimal(18, 2)
+  formaPago       String   // EFECTIVO, TARJETA, TRANSFERENCIA, CHEQUE
+  
+  numeroReferencia String?  // Número de cheque, autorización, etc.
+  bancoId         String?
+  
+  observaciones   String?
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("pagos_factura")
+  @@index([facturaId])
+}
+
+// ============================================================================
+// MÓDULO: CUENTAS POR PAGAR
+// ============================================================================
+
+model Suplidor {
+  id                String   @id @default(uuid())
+  tipoIdentificacion String  // RNC, CEDULA, PASAPORTE
+  identificacion    String
+  razonSocial       String?
+  nombre            String?
+  apellido          String?
+  nombreComercial   String?
+  
+  email             String?
+  telefono          String?
+  direccion         String?
+  ciudad            String?
+  provincia         String?
+  
+  tipoSuplidor      String   // BIEN, SERVICIO, MIXTO
+  plazoCredito      Int?     // Días
+  
+  activo            Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  compras           Compra[]
+  cuentasPorPagar   CuentaPorPagar[]
+  
+  @@unique([tipoIdentificacion, identificacion])
+  @@map("suplidores")
+}
+
+model Compra {
+  id              String   @id @default(uuid())
+  numero          String   @unique
+  ncfSuplidor     String?  // NCF del suplidor
+  
+  fecha           DateTime @default(now())
+  fechaVencimiento DateTime?
+  
+  suplidorId      String
+  suplidor        Suplidor @relation(fields: [suplidorId], references: [id])
+  
+  subtotal        Decimal  @db.Decimal(18, 2)
+  descuento       Decimal  @db.Decimal(18, 2) @default(0)
+  itbis           Decimal  @db.Decimal(18, 2) @default(0)
+  total           Decimal  @db.Decimal(18, 2)
+  
+  estado          String   // BORRADOR, REGISTRADA, ANULADA, PAGADA
+  
+  notas           String?
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  detalles        DetalleCompra[]
+  cuentaPorPagar  CuentaPorPagar?
+  
+  @@map("compras")
+  @@index([fecha])
+  @@index([suplidorId])
+}
+
+model DetalleCompra {
+  id          String   @id @default(uuid())
+  compraId    String
+  compra      Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  
+  descripcion String
+  cantidad    Decimal  @db.Decimal(18, 4)
+  costoUnitario Decimal @db.Decimal(18, 2)
+  descuento   Decimal  @db.Decimal(18, 2) @default(0)
+  itbis       Decimal  @db.Decimal(18, 2) @default(0)
+  total       Decimal  @db.Decimal(18, 2)
+  
+  gravadoITBIS Boolean @default(true)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("detalles_compra")
+}
+
+model CuentaPorPagar {
+  id              String   @id @default(uuid())
+  compraId        String   @unique
+  compra          Compra   @relation(fields: [compraId], references: [id])
+  
+  suplidorId      String
+  suplidor        Suplidor @relation(fields: [suplidorId], references: [id])
+  
+  montoTotal      Decimal  @db.Decimal(18, 2)
+  montoPagado     Decimal  @db.Decimal(18, 2) @default(0)
+  saldoPendiente  Decimal  @db.Decimal(18, 2)
+  
+  fechaEmision    DateTime
+  fechaVencimiento DateTime
+  
+  estado          String   // PENDIENTE, PAGADA_PARCIAL, PAGADA, VENCIDA
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("cuentas_por_pagar")
+  @@index([suplidorId, estado])
+}
+
+// ============================================================================
+// MÓDULO: ACTIVOS FIJOS
+// ============================================================================
+
+model ActivoFijo {
+  id              String   @id @default(uuid())
+  codigo          String   @unique
+  nombre          String
+  descripcion     String?
+  categoriaId     String?
+  
+  fechaAdquisicion DateTime
+  valorAdquisicion Decimal @db.Decimal(18, 2)
+  valorResidual   Decimal  @db.Decimal(18, 2) @default(0)
+  
+  vidaUtil        Int      // Años
+  metodoDepreciacion String // LINEA_RECTA, ACELERADA, UNIDADES_PRODUCCION
+  tasaDepreciacion Decimal @db.Decimal(5, 2)
+  
+  depreciacionAcumulada Decimal @db.Decimal(18, 2) @default(0)
+  valorNeto       Decimal  @db.Decimal(18, 2)
+  
+  estado          String   // ACTIVO, DEPRECIADO, VENDIDO, DADO_BAJA
+  
+  activo          Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  depreciaciones  DepreciacionActivo[]
+  
+  @@map("activos_fijos")
+}
+
+model DepreciacionActivo {
+  id          String   @id @default(uuid())
+  activoId    String
+  activo      ActivoFijo @relation(fields: [activoId], references: [id])
+  
+  periodo     String   // AAAA-MM
+  fecha       DateTime
+  monto       Decimal  @db.Decimal(18, 2)
+  
+  depreciacionAcumuladaAntes Decimal @db.Decimal(18, 2)
+  depreciacionAcumuladaDespues Decimal @db.Decimal(18, 2)
+  
+  asientoId   String?  // Referencia al asiento contable
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("depreciaciones_activo")
+  @@index([activoId, periodo])
+}
+
+// ============================================================================
+// MÓDULO: BANCOS
+// ============================================================================
+
+model CuentaBancaria {
+  id              String   @id @default(uuid())
+  banco           String
+  numeroCuenta    String
+  tipoCuenta      String   // CORRIENTE, AHORRO
+  moneda          String   @default("DOP")
+  saldoInicial    Decimal  @db.Decimal(18, 2)
+  saldoActual     Decimal  @db.Decimal(18, 2)
+  
+  activo          Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  movimientos     MovimientoBancario[]
+  
+  @@map("cuentas_bancarias")
+}
+
+model MovimientoBancario {
+  id              String   @id @default(uuid())
+  cuentaBancariaId String
+  cuentaBancaria  CuentaBancaria @relation(fields: [cuentaBancariaId], references: [id])
+  
+  fecha           DateTime
+  tipo            String   // DEPOSITO, RETIRO, TRANSFERENCIA, INTERES, COMISION
+  numeroDocumento String?  // Número de cheque, referencia
+  
+  concepto        String
+  monto           Decimal  @db.Decimal(18, 2)
+  
+  saldoAnterior   Decimal  @db.Decimal(18, 2)
+  saldoNuevo      Decimal  @db.Decimal(18, 2)
+  
+  conciliado      Boolean  @default(false)
+  fechaConciliacion DateTime?
+  
+  usuarioCreacion String
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("movimientos_bancarios")
+  @@index([cuentaBancariaId, fecha])
+}
+
+// ============================================================================
+// ÍNDICES Y CONFIGURACIÓN ADICIONAL
+// ============================================================================
