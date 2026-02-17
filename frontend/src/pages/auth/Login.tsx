@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import { useAuthStore, type User } from '../../store/authStore';
 import api from '../../services/api';
 
 export default function Login() {
@@ -21,25 +21,31 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', formData);
-      
-      const { accessToken, refreshToken, usuario } = response.data.data;
-      
-      // Guardar en el store
-      login(usuario, accessToken, refreshToken);
-      
-      // Redirigir al dashboard
+      const response = await api.post<{
+        success: boolean;
+        data: { accessToken: string; refreshToken: string; usuario: unknown };
+      }>('/auth/login', formData);
+
+      const data = response.data?.data;
+      if (!data?.accessToken || !data?.usuario) {
+        setError('Respuesta inválida del servidor. Reintenta.');
+        return;
+      }
+
+      login(data.usuario as User, data.accessToken, data.refreshToken);
       navigate('/', { replace: true });
-      
     } catch (err: unknown) {
       console.error('Error en login:', err);
-      const message =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          : undefined;
-      setError(
-        message || 'Error al iniciar sesión. Verifica tus credenciales.'
-      );
+      let message = 'Error al iniciar sesión. Verifica tus credenciales.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const res = (err as { response?: { data?: { message?: string }; status?: number } }).response;
+        if (res?.data?.message) message = res.data.message;
+        else if (res?.status === 404 || (res?.status && res.status >= 500))
+          message = 'Servidor no disponible. ¿Está el backend en marcha?';
+        else if (res?.status === 0 || (err as { code?: string }).code === 'ERR_NETWORK')
+          message = 'No se pudo conectar. Revisa que el backend esté en http://localhost:3000';
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }

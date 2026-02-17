@@ -74,6 +74,14 @@ export class AuthService {
 
     logger.info(`Login exitoso para usuario: ${nombreUsuario}`);
 
+    // Normalizar permisos a array de strings (Prisma Json puede venir como objeto/array)
+    const rawPermisos = usuario.rol.permisos;
+    const permisos = Array.isArray(rawPermisos)
+      ? (rawPermisos as unknown[]).map(String)
+      : typeof rawPermisos === 'string'
+        ? (rawPermisos ? [rawPermisos] : [])
+        : [];
+
     return {
       accessToken,
       refreshToken,
@@ -83,8 +91,8 @@ export class AuthService {
         email: usuario.email,
         nombreCompleto: usuario.nombreCompleto,
         rol: usuario.rol.nombre,
-        permisos: usuario.rol.permisos,
-        sucursal: usuario.sucursal
+        permisos,
+        sucursal: usuario.sucursal ?? null
       }
     };
   }

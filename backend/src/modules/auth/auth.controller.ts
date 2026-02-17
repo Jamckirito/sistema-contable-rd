@@ -1,17 +1,20 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { asyncHandler } from '../../shared/middleware/error.middleware';
+import { asyncHandler, AppError } from '../../shared/middleware/error.middleware';
 import { AuthRequest } from '../../shared/middleware/auth.middleware';
 
 const authService = new AuthService();
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { nombreUsuario, password } = req.body;
+  const { nombreUsuario, password } = req.body ?? {};
+  if (!nombreUsuario || !password) {
+    throw new AppError('Usuario y contraseña son requeridos', 400);
+  }
   const ipAddress = req.ip;
   const userAgent = req.headers['user-agent'];
 
   const result = await authService.login(
-    { nombreUsuario, password },
+    { nombreUsuario: String(nombreUsuario).trim(), password: String(password) },
     ipAddress,
     userAgent
   );
