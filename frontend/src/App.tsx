@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
+import { Sidebar } from './components/layout/Sidebar';
+import { Header } from './components/layout/Header';
 
 // Import pages
 import { Login, Dashboard, Facturas, NuevaFactura, Clientes, Inventario, Contabilidad, Reportes } from './pages/index';
@@ -14,31 +16,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// Simple layouts
 const AuthLayout = () => (
-  <div className="min-h-screen bg-gray-50">
+  <div className="min-h-screen bg-slate-50">
     <Outlet />
   </div>
 );
 
 const MainLayout = () => (
-  <div className="min-h-screen bg-gray-50">
-    <div className="flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen p-4">
-        <div className="text-xl font-bold text-primary-600 mb-8">Sistema Contable RD</div>
-        <nav className="space-y-2">
-          <a href="/" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Dashboard</a>
-          <a href="/facturas" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Facturas</a>
-          <a href="/clientes" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Clientes</a>
-          <a href="/inventario" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Inventario</a>
-          <a href="/contabilidad" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Contabilidad</a>
-          <a href="/reportes" className="block px-4 py-2 rounded-lg hover:bg-primary-50 text-gray-700">Reportes</a>
-        </nav>
-      </aside>
-      
-      {/* Main content */}
-      <main className="flex-1">
+  <div className="min-h-screen bg-slate-50/80">
+    <Sidebar />
+    <div className="pl-64">
+      <Header />
+      <main className="min-h-[calc(100vh-4rem)] p-8">
         <Outlet />
       </main>
     </div>
