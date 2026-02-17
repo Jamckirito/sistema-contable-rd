@@ -40,7 +40,7 @@ model Rol {
   id          String   @id @default(uuid())
   nombre      String   @unique
   descripcion String?
-  permisos    Json     // Array de permisos
+  permisos    String   // JSON array de permisos (compatible SQLite)
   activo      Boolean  @default(true)
   
   createdAt   DateTime @default(now())
@@ -75,8 +75,8 @@ model Auditoria {
   modulo      String   // Nombre del módulo
   tabla       String   // Tabla afectada
   registroId  String?  // ID del registro afectado
-  datosAntes  Json?    // Estado anterior
-  datosDespues Json?   // Estado nuevo
+  datosAntes  String?  // JSON estado anterior (compatible SQLite)
+  datosDespues String?  // JSON estado nuevo (compatible SQLite)
   ipAddress   String?
   
   createdAt   DateTime @default(now())
@@ -151,7 +151,7 @@ model Configuracion {
   empresaId  String
   empresa    Empresa  @relation(fields: [empresaId], references: [id])
   clave      String   // Clave de configuración
-  valor      Json     // Valor de la configuración
+  valor      String   // JSON valor de la configuración (compatible SQLite)
   modulo     String   // Módulo al que pertenece
   descripcion String?
   

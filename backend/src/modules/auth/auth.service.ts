@@ -74,13 +74,19 @@ export class AuthService {
 
     logger.info(`Login exitoso para usuario: ${nombreUsuario}`);
 
-    // Normalizar permisos a array de strings (Prisma Json puede venir como objeto/array)
+    // Normalizar permisos a array (en SQLite se guarda como JSON string)
     const rawPermisos = usuario.rol.permisos;
-    const permisos = Array.isArray(rawPermisos)
-      ? (rawPermisos as unknown[]).map(String)
-      : typeof rawPermisos === 'string'
-        ? (rawPermisos ? [rawPermisos] : [])
-        : [];
+    let permisos: string[] = [];
+    if (typeof rawPermisos === 'string') {
+      try {
+        const parsed = JSON.parse(rawPermisos);
+        permisos = Array.isArray(parsed) ? parsed.map(String) : parsed ? [String(parsed)] : [];
+      } catch {
+        permisos = rawPermisos ? [rawPermisos] : [];
+      }
+    } else if (Array.isArray(rawPermisos)) {
+      permisos = (rawPermisos as unknown[]).map(String);
+    }
 
     return {
       accessToken,

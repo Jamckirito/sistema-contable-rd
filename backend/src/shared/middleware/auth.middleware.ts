@@ -42,13 +42,26 @@ export const authenticate = async (
       throw new AppError('Usuario no encontrado o inactivo', 401);
     }
 
-    // Agregar información del usuario al request
+    // Parsear permisos (en SQLite se guardan como JSON string)
+    let permisos: string[] = [];
+    const raw: unknown = usuario.rol.permisos;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        permisos = Array.isArray(parsed) ? parsed.map(String) : parsed ? [String(parsed)] : [];
+      } catch {
+        permisos = raw ? [raw] : [];
+      }
+    } else if (Array.isArray(raw)) {
+      permisos = (raw as unknown[]).map(String);
+    }
+
     req.user = {
       id: usuario.id,
       nombreUsuario: usuario.nombreUsuario,
       email: usuario.email,
       rol: usuario.rol.nombre,
-      permisos: usuario.rol.permisos as string[]
+      permisos
     };
 
     next();
