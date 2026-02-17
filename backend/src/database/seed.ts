@@ -286,7 +286,6 @@ async function main() {
 
   // Nivel 2 - Subcuentas principales
   await prisma.planCuentas.createMany({
-    skipDuplicates: true,
     data: [
       // Activos
       { codigo: '1.1', nombre: 'ACTIVOS CORRIENTES', nivel: 2, tipoCuenta: 'ACTIVO', naturaleza: 'DEUDORA', cuentaPadreId: activos.id, aceptaMovimiento: false },
@@ -315,7 +314,6 @@ async function main() {
 
   // Nivel 3 - Cuentas de detalle (algunas aceptan movimiento)
   await prisma.planCuentas.createMany({
-    skipDuplicates: true,
     data: [
       // Activos Corrientes
       { codigo: '1.1.1', nombre: 'CAJA Y BANCOS', nivel: 3, tipoCuenta: 'ACTIVO', naturaleza: 'DEUDORA', cuentaPadreId: activosCorrientes!.id, aceptaMovimiento: false },
@@ -336,7 +334,6 @@ async function main() {
 
   // Nivel 4 - Cuentas específicas que aceptan movimiento
   await prisma.planCuentas.createMany({
-    skipDuplicates: true,
     data: [
       { codigo: '1.1.1.1', nombre: 'CAJA GENERAL', nivel: 4, tipoCuenta: 'ACTIVO', naturaleza: 'DEUDORA', cuentaPadreId: cajaYBancos!.id, aceptaMovimiento: true },
       { codigo: '1.1.1.2', nombre: 'BANCO POPULAR', nivel: 4, tipoCuenta: 'ACTIVO', naturaleza: 'DEUDORA', cuentaPadreId: cajaYBancos!.id, aceptaMovimiento: true },
@@ -354,7 +351,6 @@ async function main() {
   const fechaVencimiento = dayjs().add(1, 'year').toDate();
 
   await prisma.secuenciaNcf.createMany({
-    skipDuplicates: true,
     data: [
       {
         tipoComprobante: 'B01',
@@ -450,7 +446,6 @@ async function main() {
   console.log('📦 Creando categorías de productos...');
 
   await prisma.categoriaProducto.createMany({
-    skipDuplicates: true,
     data: [
       { codigo: 'CAT001', nombre: 'Productos', descripcion: 'Productos generales', activo: true },
       { codigo: 'CAT002', nombre: 'Servicios', descripcion: 'Servicios profesionales', activo: true },
