@@ -19,8 +19,8 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
-) => {
+  _next: NextFunction
+): void => {
   // Log del error
   logger.error('Error capturado:', {
     message: err.message,
@@ -28,12 +28,12 @@ export const errorHandler = (
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
-    userId: (req as any).user?.id
+    userId: (req as Request & { user?: { id: string } }).user?.id
   });
 
   // Error de validación Zod
   if (err instanceof ZodError) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Error de validación',
       errors: err.errors.map(e => ({
@@ -41,49 +41,52 @@ export const errorHandler = (
         message: e.message
       }))
     });
+    return;
   }
 
   // Error personalizado de la aplicación
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       success: false,
       message: err.message
     });
+    return;
   }
 
   // Error de Prisma
   if (err.name === 'PrismaClientKnownRequestError') {
-    const prismaErr = err as any;
-    
+    const prismaErr = err as { code?: string };
     if (prismaErr.code === 'P2002') {
-      return res.status(409).json({
+      res.status(409).json({
         success: false,
         message: 'Ya existe un registro con estos datos únicos'
       });
+      return;
     }
-
     if (prismaErr.code === 'P2025') {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'Registro no encontrado'
       });
+      return;
     }
   }
 
   // Error genérico
-  const statusCode = 'statusCode' in err ? (err as any).statusCode : 500;
-  
+  const statusCode = 'statusCode' in err ? (err as AppError).statusCode : 500;
   res.status(statusCode).json({
     success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Error interno del servidor' 
+    message: process.env.NODE_ENV === 'production'
+      ? 'Error interno del servidor'
       : err.message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };
 
-export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const asyncHandler = (
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown> | unknown
+) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };

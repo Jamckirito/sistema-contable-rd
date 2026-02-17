@@ -31,11 +31,14 @@ export default function Login() {
       // Redirigir al dashboard
       navigate('/', { replace: true });
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en login:', err);
+      const message =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
       setError(
-        err.response?.data?.message || 
-        'Error al iniciar sesión. Verifica tus credenciales.'
+        message || 'Error al iniciar sesión. Verifica tus credenciales.'
       );
     } finally {
       setLoading(false);

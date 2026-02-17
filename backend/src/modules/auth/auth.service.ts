@@ -190,16 +190,16 @@ export class AuthService {
   private generateAccessToken(userId: string): string {
     return jwt.sign(
       { userId },
-      this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
+      this.JWT_SECRET as jwt.Secret,
+      { expiresIn: this.JWT_EXPIRES_IN } as jwt.SignOptions
     );
   }
 
   private generateRefreshToken(userId: string): string {
     return jwt.sign(
       { userId },
-      this.JWT_SECRET,
-      { expiresIn: this.JWT_REFRESH_EXPIRES_IN }
+      this.JWT_SECRET as jwt.Secret,
+      { expiresIn: this.JWT_REFRESH_EXPIRES_IN } as jwt.SignOptions
     );
   }
 

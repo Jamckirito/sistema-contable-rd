@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import { Router, type IRouter } from 'express';
 import * as authController from './auth.controller';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 
-const router = Router();
+const router: IRouter = Router();
 
 // Rutas públicas
 router.post('/login', authController.login);

@@ -420,29 +420,29 @@ async function main() {
   // ============================================================================
   console.log('📅 Creando períodos contables...');
 
-  const añoActual = dayjs().year();
+  const anioActual = dayjs().year();
   
   for (let mes = 1; mes <= 12; mes++) {
     await prisma.periodo.upsert({
       where: {
-        año_mes: {
-          año: añoActual,
+        anio_mes: {
+          anio: anioActual,
           mes
         }
       },
       update: {},
       create: {
-        año: añoActual,
+        anio: anioActual,
         mes,
-        fechaInicio: dayjs(`${añoActual}-${mes}-01`).toDate(),
-        fechaFin: dayjs(`${añoActual}-${mes}-01`).endOf('month').toDate(),
-        descripcion: `${añoActual}-${mes.toString().padStart(2, '0')}`,
+        fechaInicio: dayjs(`${anioActual}-${mes}-01`).toDate(),
+        fechaFin: dayjs(`${anioActual}-${mes}-01`).endOf('month').toDate(),
+        descripcion: `${anioActual}-${mes.toString().padStart(2, '0')}`,
         cerrado: mes < dayjs().month() + 1 // Cerrar meses anteriores
       }
     });
   }
 
-  console.log(`✅ Períodos contables creados para ${añoActual}`);
+  console.log(`✅ Períodos contables creados para ${anioActual}`);
 
   // ============================================================================
   // 8. CREAR CATEGORÍAS DE PRODUCTOS

@@ -204,7 +204,8 @@ model AsientoContable {
   documentoReferencia String?
   moduloOrigen    String?  // FACTURACION, NOMINA, INVENTARIO, etc.
   
-  debitos         Decimal   creditos        Decimal   
+  debitos         Decimal
+  creditos        Decimal
   esCuadrado      Boolean  @default(false)
   cerrado         Boolean  @default(false)
   fechaCierre     DateTime?
@@ -261,7 +262,7 @@ model CentroCosto {
 
 model Periodo {
   id          String   @id @default(uuid())
-  año         Int
+  anio        Int      // Año contable
   mes         Int?     // NULL = anual
   fechaInicio DateTime
   fechaFin    DateTime
@@ -274,7 +275,7 @@ model Periodo {
   
   asientos    AsientoContable[]
   
-  @@unique([año, mes])
+  @@unique([anio, mes])
   @@map("periodos")
 }
 
@@ -300,7 +301,8 @@ model Cliente {
   pais              String   @default("República Dominicana")
   
   tipoCliente       String   // FINAL, CREDITO_FISCAL, GUBERNAMENTAL, ESPECIAL
-  limiteCredito     Decimal?  plazoCredito      Int?     // Días
+  limiteCredito     Decimal?
+  plazoCredito      Int?     // Días
   
   activo            Boolean  @default(true)
   
@@ -352,9 +354,10 @@ model Factura {
   sucursal        Sucursal @relation(fields: [sucursalId], references: [id])
   
   // Montos
-  subtotal        Decimal   descuento       Decimal  @default(0)
+  subtotal        Decimal
+  descuento       Decimal  @default(0)
   itbis           Decimal  @default(0)
-  total           Decimal   
+  total           Decimal
   // Estados
   estado          String   // BORRADOR, EMITIDA, ANULADA, PAGADA
   formaPago       String   // EFECTIVO, TARJETA, TRANSFERENCIA, CREDITO, CHEQUE
@@ -387,9 +390,11 @@ model DetalleFactura {
   producto    Producto? @relation(fields: [productoId], references: [id])
   
   descripcion String
-  cantidad    Decimal   precioUnitario Decimal  descuento   Decimal  @default(0)
+  cantidad    Decimal
+  precioUnitario Decimal
+  descuento   Decimal  @default(0)
   itbis       Decimal  @default(0)
-  total       Decimal   
+  total       Decimal
   gravadoITBIS Boolean @default(true)
   
   createdAt   DateTime @default(now())
@@ -414,7 +419,8 @@ model Producto {
   
   // Inventario
   controlaInventario Boolean @default(true)
-  stockMinimo     Decimal?  stockMaximo     Decimal?  
+  stockMinimo     Decimal?
+  stockMaximo     Decimal?
   // Precios
   costoPromedio   Decimal  @default(0)
   precioVenta     Decimal   
@@ -460,8 +466,11 @@ model MovimientoInventario {
   numeroDocumento String?
   
   fecha           DateTime @default(now())
-  cantidad        Decimal   costoUnitario   Decimal   costoTotal      Decimal   
-  stockAnterior   Decimal   stockNuevo      Decimal   
+  cantidad        Decimal
+  costoUnitario   Decimal
+  costoTotal      Decimal
+  stockAnterior   Decimal
+  stockNuevo      Decimal
   observaciones   String?
   usuarioCreacion String
   
@@ -483,8 +492,9 @@ model CuentaPorCobrar {
   clienteId       String
   cliente         Cliente  @relation(fields: [clienteId], references: [id])
   
-  montoTotal      Decimal   montoPagado     Decimal  @default(0)
-  saldoPendiente  Decimal   
+  montoTotal      Decimal
+  montoPagado     Decimal  @default(0)
+  saldoPendiente  Decimal
   fechaEmision    DateTime
   fechaVencimiento DateTime
   
@@ -505,7 +515,8 @@ model PagoFactura {
   factura         Factura  @relation(fields: [facturaId], references: [id])
   
   fecha           DateTime @default(now())
-  monto           Decimal   formaPago       String   // EFECTIVO, TARJETA, TRANSFERENCIA, CHEQUE
+  monto           Decimal
+  formaPago       String   // EFECTIVO, TARJETA, TRANSFERENCIA, CHEQUE
   
   numeroReferencia String?  // Número de cheque, autorización, etc.
   bancoId         String?
@@ -564,9 +575,10 @@ model Compra {
   suplidorId      String
   suplidor        Suplidor @relation(fields: [suplidorId], references: [id])
   
-  subtotal        Decimal   descuento       Decimal  @default(0)
+  subtotal        Decimal
+  descuento       Decimal  @default(0)
   itbis           Decimal  @default(0)
-  total           Decimal   
+  total           Decimal
   estado          String   // BORRADOR, REGISTRADA, ANULADA, PAGADA
   
   notas           String?
@@ -589,9 +601,11 @@ model DetalleCompra {
   compra      Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
   
   descripcion String
-  cantidad    Decimal   costoUnitario Decimal  descuento   Decimal  @default(0)
+  cantidad    Decimal
+  costoUnitario Decimal
+  descuento   Decimal  @default(0)
   itbis       Decimal  @default(0)
-  total       Decimal   
+  total       Decimal
   gravadoITBIS Boolean @default(true)
   
   createdAt   DateTime @default(now())
@@ -607,8 +621,9 @@ model CuentaPorPagar {
   suplidorId      String
   suplidor        Suplidor @relation(fields: [suplidorId], references: [id])
   
-  montoTotal      Decimal   montoPagado     Decimal  @default(0)
-  saldoPendiente  Decimal   
+  montoTotal      Decimal
+  montoPagado     Decimal  @default(0)
+  saldoPendiente  Decimal
   fechaEmision    DateTime
   fechaVencimiento DateTime
   
@@ -633,7 +648,8 @@ model ActivoFijo {
   categoriaId     String?
   
   fechaAdquisicion DateTime
-  valorAdquisicion Decimal  valorResidual   Decimal  @default(0)
+  valorAdquisicion Decimal
+  valorResidual   Decimal  @default(0)
   
   vidaUtil        Int      // Años
   metodoDepreciacion String // LINEA_RECTA, ACELERADA, UNIDADES_PRODUCCION
@@ -659,8 +675,9 @@ model DepreciacionActivo {
   
   periodo     String   // AAAA-MM
   fecha       DateTime
-  monto       Decimal   
-  depreciacionAcumuladaAntes Decimal  depreciacionAcumuladaDespues Decimal  
+  monto       Decimal
+  depreciacionAcumuladaAntes Decimal
+  depreciacionAcumuladaDespues Decimal
   asientoId   String?  // Referencia al asiento contable
   
   createdAt   DateTime @default(now())
@@ -679,7 +696,8 @@ model CuentaBancaria {
   numeroCuenta    String
   tipoCuenta      String   // CORRIENTE, AHORRO
   moneda          String   @default("DOP")
-  saldoInicial    Decimal   saldoActual     Decimal   
+  saldoInicial    Decimal
+  saldoActual     Decimal
   activo          Boolean  @default(true)
   
   createdAt       DateTime @default(now())
@@ -700,8 +718,9 @@ model MovimientoBancario {
   numeroDocumento String?  // Número de cheque, referencia
   
   concepto        String
-  monto           Decimal   
-  saldoAnterior   Decimal   saldoNuevo      Decimal   
+  monto           Decimal
+  saldoAnterior   Decimal
+  saldoNuevo      Decimal
   conciliado      Boolean  @default(false)
   fechaConciliacion DateTime?
   

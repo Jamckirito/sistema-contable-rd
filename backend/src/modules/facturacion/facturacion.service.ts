@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../database/prisma.client';
 import { AppError } from '../../shared/middleware/error.middleware';
 import { logger } from '../../shared/utils/logger';
@@ -108,7 +109,7 @@ export class FacturacionService {
     const numeroFactura = await this.generarNumeroFactura();
 
     // Crear factura en transacción
-    const factura = await prisma.$transaction(async (tx) => {
+    const factura = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Crear factura
       const nuevaFactura = await tx.factura.create({
         data: {
@@ -250,7 +251,7 @@ export class FacturacionService {
     }
 
     // Anular factura en transacción
-    const facturaAnulada = await prisma.$transaction(async (tx) => {
+    const facturaAnulada = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Actualizar factura
       const updated = await tx.factura.update({
         where: { id },
@@ -328,23 +329,23 @@ export class FacturacionService {
     // Crédito: Ventas
     // Crédito: ITBIS por Pagar
 
-    const año = dayjs().year();
+    const anio = dayjs().year();
     const mes = dayjs().month() + 1;
 
     // Buscar período contable
     let periodo = await tx.periodo.findFirst({
-      where: { año, mes }
+      where: { anio, mes }
     });
 
     if (!periodo) {
       // Crear período si no existe
       periodo = await tx.periodo.create({
         data: {
-          año,
+          anio,
           mes,
-          fechaInicio: dayjs(`${año}-${mes}-01`).toDate(),
-          fechaFin: dayjs(`${año}-${mes}-01`).endOf('month').toDate(),
-          descripcion: `${año}-${mes.toString().padStart(2, '0')}`,
+          fechaInicio: dayjs(`${anio}-${mes}-01`).toDate(),
+          fechaFin: dayjs(`${anio}-${mes}-01`).endOf('month').toDate(),
+          descripcion: `${anio}-${mes.toString().padStart(2, '0')}`,
           cerrado: false
         }
       });
@@ -420,7 +421,7 @@ export class FacturacionService {
       throw new AppError('No se puede registrar pago en una factura anulada', 400);
     }
 
-    const resultado = await prisma.$transaction(async (tx) => {
+    const resultado = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Registrar pago
       const pago = await tx.pagoFactura.create({
         data: {
